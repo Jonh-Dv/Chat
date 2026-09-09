@@ -22,7 +22,7 @@ public class SecurityConfig {
                 SessionCreationPolicy.STATELESS)).authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/auth/cadastro")
+                                "/auth/cadastrar")
                         .permitAll().anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults());
         return http.build();
