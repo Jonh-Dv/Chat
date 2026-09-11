@@ -33,4 +33,11 @@ public class ConversaService {
             return conversa;
         }
     }
+
+    public Conversa deletarConversa(Long idConversa){
+        Conversa conversa = conversaRepository.findById(idConversa)
+                .orElseThrow(() -> new RuntimeException("Conversa não encontrada com o ID: " + idConversa));
+        conversaRepository.delete(conversa);
+        return conversa;
+    }
 }
