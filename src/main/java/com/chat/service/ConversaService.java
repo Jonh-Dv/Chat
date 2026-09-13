@@ -1,6 +1,6 @@
 package com.chat.service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ public class ConversaService {
         String mediador = maior.toString() + menor.toString();
 
         Long idConversa = Long.parseLong(mediador);
-        LocalDate dataCriacao = LocalDate.now();
+        LocalDateTime dataCriacao = LocalDateTime.now();
 
         System.out.println("ID da conversa: " + idConversa);
 
@@ -39,5 +39,17 @@ public class ConversaService {
                 .orElseThrow(() -> new RuntimeException("Conversa não encontrada com o ID: " + idConversa));
         conversaRepository.delete(conversa);
         return conversa;
+    }
+
+
+    public Long gerarIdConversa(Long idUsuario1, Long idUsuario2) {
+        Long maior = Math.max(idUsuario1, idUsuario2);
+        Long menor = Math.min(idUsuario1, idUsuario2);
+
+        String mediador = maior.toString() + menor.toString();
+
+        Long idConversa = Long.parseLong(mediador);
+        System.out.println("ID da conversa: " + idConversa);
+        return idConversa;
     }
 }
