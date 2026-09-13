@@ -51,8 +51,9 @@ public class MensagemService {
         return mensagemRepository.save(mensagem);
     }
 
+    //Funcionalidade que apaga varias mensagens
     @Transactional
-    public void deletarMensagem(Long idConversa) {
+    public void deletarMensagens(Long idConversa) {
         List<Mensagem> mensagemExcluidas = mensagemRepository.buscarMensagensPorIdConversa(idConversa);
 
         if (mensagemExcluidas.size() != 0) {
@@ -70,5 +71,15 @@ public class MensagemService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Não há mensagens nessa conversa.");
         }
 
+    }
+
+
+    //Funcionalidade que apaga uma unica mensagem
+    @Transactional 
+    public void DeletarMensagem(Long idMensagem){
+        if(idMensagem.equals(0)){
+            throw new RuntimeException("idMensagem vazio.");
+        }
+        mensagemRepository.deleteById(idMensagem);
     }
 }
