@@ -1,5 +1,6 @@
 HELP.md
 .env
+/src/main/java/com/chat/mock/
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
