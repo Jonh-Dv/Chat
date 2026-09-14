@@ -2,6 +2,8 @@ package com.chat.service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -18,6 +20,8 @@ import com.chat.repository.UsuarioRepository;
 
 @Service
 public class MensagemService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MensagemService.class);
 
     @Autowired
     private MensagemRepository mensagemRepository;
@@ -90,5 +94,30 @@ public class MensagemService {
             throw new RuntimeException("idMensagem vazio.");
         }
         mensagemRepository.deleteById(idMensagem);
+    }
+
+    @Transactional
+    public List<Mensagem> buscarMensagensOuCriarConversa(Long idConversa, Long idEnviando, Long idRecebendo) {
+        Conversa conversa = obterOuCriarConversa(idConversa, idEnviando, idRecebendo);
+        List<Mensagem> mensagens = mensagemRepository.buscarMensagensPorIdConversa(conversa.getIdConversa());
+        if (!mensagens.isEmpty()) {
+            logger.debug("A conversa {} possui mensagens.", conversa.getIdConversa());
+        }
+        return mensagens;
+    }
+
+    private Conversa obterOuCriarConversa(Long idConversa, Long idEnviando, Long idRecebendo) {
+        if (idConversa == null || idEnviando == null || idRecebendo == null
+                || idConversa <= 0 || idEnviando <= 0 || idRecebendo <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Os IDs devem ser positivos e obrigatórios.");
+        }
+
+        Long idEsperado = conversaService.gerarIdConversa(idEnviando, idRecebendo);
+        if (!idConversa.equals(idEsperado)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ID da conversa não corresponde aos usuários.");
+        }
+
+        return conversaRepository.findById(idConversa)
+                .orElseGet(() -> conversaService.criarConversa(idEnviando, idRecebendo));
     }
 }
