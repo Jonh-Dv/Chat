@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.chat.entity.Conversa;
 import com.chat.entity.Mensagem;
+import com.chat.entity.Usuario;
 import com.chat.repository.ConversaRepository;
 import com.chat.repository.MensagemRepository;
 
@@ -39,7 +40,7 @@ class MensagemExclusaoServiceTests {
     void rejeitaIdsInvalidosNasDuasOperacoesSemAcessarOBanco() {
         for (Long id : new Long[] { null, 0L, -1L }) {
             ResponseStatusException erroMensagem = assertThrows(ResponseStatusException.class,
-                    () -> mensagemService.deletarMensagem(id));
+                    () -> mensagemService.deletarMensagem(id, 1L));
             ResponseStatusException erroConversa = assertThrows(ResponseStatusException.class,
                     () -> mensagemService.deletarMensagens(id));
             assertEquals(HttpStatus.BAD_REQUEST, erroMensagem.getStatusCode());
@@ -53,7 +54,7 @@ class MensagemExclusaoServiceTests {
         when(mensagemRepository.findById(10L)).thenReturn(Optional.empty());
 
         ResponseStatusException erro = assertThrows(ResponseStatusException.class,
-                () -> mensagemService.deletarMensagem(10L));
+                () -> mensagemService.deletarMensagem(10L, 1L));
 
         assertEquals(HttpStatus.NOT_FOUND, erro.getStatusCode());
         verify(mensagemRepository, never()).delete(any(Mensagem.class));
@@ -62,12 +63,32 @@ class MensagemExclusaoServiceTests {
     @Test
     void excluiMensagemExistente() {
         Mensagem mensagem = new Mensagem();
+        Usuario remetente = new Usuario();
+        remetente.setId(1L);
+        mensagem.setRemetente(remetente);
         mensagem.setIdConversa(new Conversa(21L, LocalDateTime.now()));
         when(mensagemRepository.findById(10L)).thenReturn(Optional.of(mensagem));
 
-        assertEquals(21L, mensagemService.deletarMensagem(10L));
+        assertEquals(21L, mensagemService.deletarMensagem(10L, 1L));
 
         verify(mensagemRepository).delete(mensagem);
+        verify(mensagemRepository, never()).buscarIdRemetentePorIdMensagem(any());
+    }
+
+    @Test
+    void impedeExclusaoDeMensagemDeOutroUsuarioSemConsultaExtra() {
+        Mensagem mensagem = new Mensagem();
+        Usuario remetente = new Usuario();
+        remetente.setId(1L);
+        mensagem.setRemetente(remetente);
+        when(mensagemRepository.findById(10L)).thenReturn(Optional.of(mensagem));
+
+        ResponseStatusException erro = assertThrows(ResponseStatusException.class,
+                () -> mensagemService.deletarMensagem(10L, 2L));
+
+        assertEquals(HttpStatus.BAD_REQUEST, erro.getStatusCode());
+        verify(mensagemRepository, never()).delete(any(Mensagem.class));
+        verify(mensagemRepository, never()).buscarIdRemetentePorIdMensagem(any());
     }
 
     @Test

@@ -94,12 +94,20 @@ public class MensagemService {
 
     // Funcionalidade que apaga uma unica mensagem
     @Transactional
-    public Long deletarMensagem(Long idMensagem) {
+    public Long deletarMensagem(Long idMensagem, Long idUsuarioLogado) {
         if (idMensagem == null || idMensagem <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ID da mensagem precisa ser válido.");
         }
         Mensagem mensagem = mensagemRepository.findById(idMensagem)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mensagem não encontrada."));
+
+        if (mensagem.getRemetente().getId().equals(idUsuarioLogado)) {
+            logger.info("USUÁRIO TEM PERMISSÃO PARA APAGAR SUA MENSAGEM");
+        } else {
+            logger.info("USUÁRIO NÃO TEM PERMISSÃO PARA APAGAR SUA CONVERSA");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O USUÁRIO SÓ PODE APAGAR SUA PRÓPRIA MENSAGEM");
+        }
+
         Long idConversa = mensagem.getIdConversa().getIdConversa();
         mensagemRepository.delete(mensagem);
         return idConversa;

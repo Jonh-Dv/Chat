@@ -1,5 +1,6 @@
 package com.chat.controller;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.chat.dto.MensagemDTO;
 import com.chat.entity.Mensagem;
+import com.chat.repository.UsuarioRepository;
 import com.chat.service.MensagemService;
 
 @RestController
@@ -26,6 +28,9 @@ public class MensagemController {
 
     @Autowired
     private MensagemService mensagemService;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     @Autowired 
     private SimpMessagingTemplate simpMessagingTemplate;
@@ -71,14 +76,20 @@ public class MensagemController {
 
     @DeleteMapping("/deletar-mensagem/{idMensagem}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletarMensagemEspecifica(@PathVariable Long idMensagem) {
+    public void deletarMensagemEspecifica(@PathVariable Long idMensagem, Principal principal) {
 
         if (idMensagem == null || idMensagem <= 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "O ID da mensagem precisa ser válido.");
         }
 
-        Long idConversa = mensagemService.deletarMensagem(idMensagem);
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
+        }
+        Long idUsuarioLogado = usuarioRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado."))
+                .getId();
+        Long idConversa = mensagemService.deletarMensagem(idMensagem, idUsuarioLogado);
         Map<String, ?> evento = Map.of("tipo", "MENSAGEM_DELETADA", "idMensagem", idMensagem);
         simpMessagingTemplate.convertAndSend(
                 "/topic/conversa" + idConversa,

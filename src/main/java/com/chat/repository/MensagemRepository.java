@@ -13,5 +13,6 @@ public interface MensagemRepository extends JpaRepository<Mensagem, Long> {
     @Query("SELECT c FROM Mensagem c WHERE c.idConversa.idConversa = :idConversa")
     List<Mensagem> buscarMensagensPorIdConversa(@Param("idConversa") Long idConversa);
 
-    
+    @Query("SELECT m.remetente.id FROM Mensagem m WHERE m.id = :idMensagem")
+    Long buscarIdRemetentePorIdMensagem(@Param("idMensagem") Long idMensagem);
 }

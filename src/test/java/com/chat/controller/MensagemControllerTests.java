@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,12 +23,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.chat.service.MensagemService;
+import com.chat.entity.Usuario;
+import com.chat.repository.UsuarioRepository;
 
 @ExtendWith(MockitoExtension.class)
 class MensagemControllerTests {
 
     @Mock
     private MensagemService mensagemService;
+    @Mock
+    private UsuarioRepository usuarioRepository;
     @Mock
     private SimpMessagingTemplate simpMessagingTemplate;
     @InjectMocks
@@ -42,9 +47,10 @@ class MensagemControllerTests {
 
     @Test
     void notificaExclusaoNoTopicoDaConversaComIdDaMensagem() throws Exception {
-        when(mensagemService.deletarMensagem(10L)).thenReturn(21L);
+        prepararUsuarioLogado();
+        when(mensagemService.deletarMensagem(10L, 1L)).thenReturn(21L);
 
-        mockMvc.perform(delete("/mensagem/deletar-mensagem/10"))
+        mockMvc.perform(delete("/mensagem/deletar-mensagem/10").principal(() -> "usuario@chat.com"))
                 .andExpect(status().isNoContent());
 
         Map<String, ?> evento = Map.of("tipo", "MENSAGEM_DELETADA", "idMensagem", 10L);
@@ -62,10 +68,11 @@ class MensagemControllerTests {
 
     @Test
     void naoNotificaQuandoMensagemNaoExiste() throws Exception {
-        when(mensagemService.deletarMensagem(10L))
+        prepararUsuarioLogado();
+        when(mensagemService.deletarMensagem(10L, 1L))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Mensagem não encontrada."));
 
-        mockMvc.perform(delete("/mensagem/deletar-mensagem/10"))
+        mockMvc.perform(delete("/mensagem/deletar-mensagem/10").principal(() -> "usuario@chat.com"))
                 .andExpect(status().isNotFound());
 
         verifyNoInteractions(simpMessagingTemplate);
@@ -90,5 +97,19 @@ class MensagemControllerTests {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(mensagemService, simpMessagingTemplate);
+    }
+
+    @Test
+    void rejeitaExclusaoSemUsuarioAutenticado() throws Exception {
+        mockMvc.perform(delete("/mensagem/deletar-mensagem/10"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(usuarioRepository, mensagemService, simpMessagingTemplate);
+    }
+
+    private void prepararUsuarioLogado() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        when(usuarioRepository.findByEmail("usuario@chat.com")).thenReturn(Optional.of(usuario));
     }
 }
