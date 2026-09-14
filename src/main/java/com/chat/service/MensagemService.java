@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,8 +31,12 @@ public class MensagemService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private SimpMessagingTemplate simpMessagingTemplate;
+
     @Transactional
     public Mensagem criarMensagem(Long idEnviando, Long idRecebendo, String conteudo) {
+
         if (conteudo == null || conteudo.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O conteúdo da mensagem é obrigatório.");
         }
@@ -48,10 +53,15 @@ public class MensagemService {
                 .orElseGet(() -> conversaService.criarConversa(idEnviando, idRecebendo));
 
         Mensagem mensagem = new Mensagem(conversa, remetente, conteudo);
-        return mensagemRepository.save(mensagem);
+        Mensagem mensagemSalva = mensagemRepository.save(mensagem);
+
+        simpMessagingTemplate.convertAndSend("/topic/conversa" + mensagemSalva.getIdConversa(), mensagemSalva);
+
+        return mensagemSalva;
+
     }
 
-    //Funcionalidade que apaga varias mensagens
+    // Funcionalidade que apaga varias mensagens
     @Transactional
     public void deletarMensagens(Long idConversa) {
         List<Mensagem> mensagemExcluidas = mensagemRepository.buscarMensagensPorIdConversa(idConversa);
@@ -73,11 +83,10 @@ public class MensagemService {
 
     }
 
-
-    //Funcionalidade que apaga uma unica mensagem
-    @Transactional 
-    public void DeletarMensagem(Long idMensagem){
-        if(idMensagem.equals(0)){
+    // Funcionalidade que apaga uma unica mensagem
+    @Transactional
+    public void DeletarMensagem(Long idMensagem) {
+        if (idMensagem.equals(0)) {
             throw new RuntimeException("idMensagem vazio.");
         }
         mensagemRepository.deleteById(idMensagem);
