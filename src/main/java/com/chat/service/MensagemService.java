@@ -59,7 +59,7 @@ public class MensagemService {
         Mensagem mensagem = new Mensagem(conversa, remetente, conteudo);
         Mensagem mensagemSalva = mensagemRepository.save(mensagem);
 
-        simpMessagingTemplate.convertAndSend("/topic/conversa" + mensagemSalva.getIdConversa(), mensagemSalva);
+        simpMessagingTemplate.convertAndSend("/topic/conversa" + mensagemSalva.getIdConversa().getIdConversa(), mensagemSalva);
 
         return mensagemSalva;
 
@@ -68,9 +68,16 @@ public class MensagemService {
     // Funcionalidade que apaga varias mensagens
     @Transactional
     public void deletarMensagens(Long idConversa) {
+        if (idConversa == null || idConversa <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ID da conversa precisa ser válido.");
+        }
+        if (!conversaRepository.existsById(idConversa)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversa não encontrada.");
+        }
+
         List<Mensagem> mensagemExcluidas = mensagemRepository.buscarMensagensPorIdConversa(idConversa);
 
-        if (mensagemExcluidas.size() != 0) {
+        if (!mensagemExcluidas.isEmpty()) {
             mensagemRepository.deleteAll(mensagemExcluidas);
 
             // apenas para exibição dos dados que foram excluidos
@@ -81,19 +88,21 @@ public class MensagemService {
                 System.out.println(mensagens.getRemetente());
             }
 
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Não há mensagens nessa conversa.");
         }
 
     }
 
     // Funcionalidade que apaga uma unica mensagem
     @Transactional
-    public void DeletarMensagem(Long idMensagem) {
-        if (idMensagem.equals(0)) {
-            throw new RuntimeException("idMensagem vazio.");
+    public Long deletarMensagem(Long idMensagem) {
+        if (idMensagem == null || idMensagem <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ID da mensagem precisa ser válido.");
         }
-        mensagemRepository.deleteById(idMensagem);
+        Mensagem mensagem = mensagemRepository.findById(idMensagem)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mensagem não encontrada."));
+        Long idConversa = mensagem.getIdConversa().getIdConversa();
+        mensagemRepository.delete(mensagem);
+        return idConversa;
     }
 
     @Transactional
