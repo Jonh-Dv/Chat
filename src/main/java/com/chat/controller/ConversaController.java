@@ -1,6 +1,7 @@
 package com.chat.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,7 @@ import com.chat.service.ConversaService;
 @RestController
 @RequestMapping("/conversa")
 public class ConversaController {
+
     @Autowired
     private ConversaService conversaService;
 
@@ -26,5 +28,10 @@ public class ConversaController {
         } catch (RuntimeException e) {
             throw new RuntimeException("Erro ao criar a conversa: " + e.getMessage());
         }
+    }
+
+    @DeleteMapping("/deletar-conversa/{idConversa}")
+    public Conversa deletarConversa(@PathVariable Long idConversa) {
+        return conversaService.deletarConversa(idConversa);
     }
 }

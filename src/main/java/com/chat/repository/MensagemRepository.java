@@ -3,6 +3,7 @@ package com.chat.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,4 +16,11 @@ public interface MensagemRepository extends JpaRepository<Mensagem, Long> {
 
     @Query("SELECT m.remetente.id FROM Mensagem m WHERE m.id = :idMensagem")
     Long buscarIdRemetentePorIdMensagem(@Param("idMensagem") Long idMensagem);
+
+    @Modifying
+    @Query("""
+            DELETE FROM Mensagem m
+            WHERE m.idConversa.idConversa = :idConversa
+            """)
+    int deletarPorIdConversa(@Param("idConversa") Long idConversa);
 }
