@@ -23,7 +23,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/auth/cadastrar")
-                        .permitAll().anyRequest().authenticated())
+                        .permitAll()
+                        .requestMatchers("/usuario/**").authenticated()
+                        .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults());
         return http.build();
     }

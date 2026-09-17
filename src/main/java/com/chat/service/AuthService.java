@@ -1,7 +1,5 @@
 package com.chat.service;
 
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -11,19 +9,18 @@ import com.chat.entity.Usuario;
 import com.chat.enumeration.Role;
 import com.chat.repository.UsuarioRepository;
 
-@Service 
+@Service
 public class AuthService {
 
-    @Autowired 
+    @Autowired
     private UsuarioRepository usuarioRepository;
 
-    @Autowired 
+    @Autowired
     private PasswordEncoder passwordEncoder;
-
 
     public void cadastrarUsuario(UsuarioDTO usuarioDTO) {
 
-        if(usuarioRepository.existsByEmail(usuarioDTO.email())){
+        if (usuarioRepository.existsByEmail(usuarioDTO.email())) {
             throw new IllegalArgumentException("Email já cadastrado");
         }
 
@@ -34,13 +31,10 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(usuarioDTO.senha()));
         user.setRole(Role.USER);
 
-        System.out.println("Usuario salvo: " + user.getName() + ", Email: " + user.getEmail() + ", Role: " + user.getRole());
+        System.out.println(
+                "Usuario salvo: " + user.getName() + ", Email: " + user.getEmail() + ", Role: " + user.getRole());
         usuarioRepository.save(user);
 
     }
 
-    public Optional<Long> buscarIdUsuario(String email){
-        Optional<Long> idUsuario = usuarioRepository.findIdByEmail(email);
-        return idUsuario;
-    }
 }
