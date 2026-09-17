@@ -1,5 +1,8 @@
 package com.chat.service;
 
+import java.lang.foreign.Linker.Option;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,5 +38,10 @@ public class AuthService {
         System.out.println("Usuario salvo: " + user.getName() + ", Email: " + user.getEmail() + ", Role: " + user.getRole());
         usuarioRepository.save(user);
 
+    }
+
+    public Optional<Long> buscarIdUsuario(String email){
+        Optional<Long> idUsuario = usuarioRepository.findIdByEmail(email);
+        return idUsuario;
     }
 }
