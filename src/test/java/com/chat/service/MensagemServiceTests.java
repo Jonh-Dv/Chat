@@ -20,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.chat.entity.Conversa;
@@ -40,6 +41,8 @@ class MensagemServiceTests {
     private ConversaService conversaService;
     @Mock
     private UsuarioRepository usuarioRepository;
+    @Mock
+    private SimpMessagingTemplate simpMessagingTemplate;
     @InjectMocks
     private MensagemService mensagemService;
 
