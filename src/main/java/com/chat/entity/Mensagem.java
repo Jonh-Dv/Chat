@@ -42,11 +42,15 @@ public class Mensagem {
     @Column(name = "DATA_ENVIO")
     private LocalDateTime dataEnvio;
 
-    public Mensagem(Conversa conversa, Usuario remetente, String conteudo) {
+    @Column(name = "VISUALIZACAO")
+    private String mensagemVisualizada;
+
+    public Mensagem(Conversa conversa, Usuario remetente, String conteudo, String mensagemVisualizada) {
         this.idConversa = conversa;
         this.remetente = remetente;
         this.conteudo = conteudo;
         this.dataEnvio = LocalDateTime.now();
+        this.mensagemVisualizada = mensagemVisualizada;
     }
 
 }

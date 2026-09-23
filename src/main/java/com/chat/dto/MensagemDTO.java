@@ -17,4 +17,5 @@ public class MensagemDTO {
     private Long idRemetente;
     private String conteudo;
     private LocalDateTime dataEnvio;
+    private String mensagemVisualizada;
 }

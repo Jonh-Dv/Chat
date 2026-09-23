@@ -32,9 +32,8 @@ public class MensagemController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    @Autowired 
+    @Autowired
     private SimpMessagingTemplate simpMessagingTemplate;
-
 
     @PostMapping("/salvar-mensagem/{idEnviando}/{idRecebendo}/{conteudo}")
     @ResponseStatus(HttpStatus.CREATED)
@@ -42,21 +41,23 @@ public class MensagemController {
             @PathVariable Long idEnviando,
             @PathVariable Long idRecebendo,
             @PathVariable String conteudo) {
-        Mensagem mensagem = mensagemService.criarMensagem(idEnviando, idRecebendo, conteudo);
+        Mensagem mensagem = mensagemService.criarMensagem(idEnviando, idRecebendo, conteudo, null);
         return new MensagemDTO(
                 mensagem.getId(),
                 mensagem.getIdConversa().getIdConversa(),
                 mensagem.getRemetente().getId(),
                 mensagem.getConteudo(),
-                mensagem.getDataEnvio());
+                mensagem.getDataEnvio(),
+                mensagem.getMensagemVisualizada());
     }
 
     @GetMapping("/buscar-mensagens/{idConversa}/{idEnviando}/{idRecebendo}")
     public List<MensagemDTO> buscarMensagens(
             @PathVariable Long idConversa,
             @PathVariable Long idEnviando,
-            @PathVariable Long idRecebendo) {
-        List<Mensagem> mensagens = mensagemService.buscarMensagensOuCriarConversa(idConversa, idEnviando, idRecebendo);
+            @PathVariable Long idRecebendo,
+            @PathVariable String mensagemVisualizada) {
+        List<Mensagem> mensagens = mensagemService.buscarMensagensOuCriarConversa(idConversa, idEnviando, idRecebendo, mensagemVisualizada);
 
         List<MensagemDTO> mensagensRetorno = new ArrayList<>();
 
@@ -67,6 +68,7 @@ public class MensagemController {
             mensagemDtoProvisorio.setId(mensagem.getId());
             mensagemDtoProvisorio.setIdConversa(mensagem.getIdConversa().getIdConversa());
             mensagemDtoProvisorio.setIdRemetente(mensagem.getRemetente().getId());
+            mensagemDtoProvisorio.setMensagemVisualizada(mensagem.getMensagemVisualizada());
 
             mensagensRetorno.add(mensagemDtoProvisorio);
         }
