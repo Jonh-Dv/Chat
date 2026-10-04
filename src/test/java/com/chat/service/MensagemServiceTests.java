@@ -62,7 +62,7 @@ class MensagemServiceTests {
             return mensagem;
         });
 
-        Mensagem mensagem = mensagemService.criarMensagem(1L, 2L, "Olá!");
+        Mensagem mensagem = mensagemService.criarMensagem(1L, 2L, "Olá!", null);
 
         assertEquals(10L, mensagem.getId());
         verify(conversaService, never()).criarConversa(any(), any());
@@ -77,7 +77,7 @@ class MensagemServiceTests {
         when(conversaService.criarConversa(1L, 2L)).thenReturn(conversa);
         when(mensagemRepository.save(any(Mensagem.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Mensagem mensagem = mensagemService.criarMensagem(1L, 2L, "Primeira mensagem");
+        Mensagem mensagem = mensagemService.criarMensagem(1L, 2L, "Primeira mensagem", null);
 
         assertSame(conversa, mensagem.getIdConversa());
         verify(conversaService).criarConversa(1L, 2L);
@@ -89,7 +89,7 @@ class MensagemServiceTests {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
 
         ResponseStatusException erro = assertThrows(ResponseStatusException.class,
-                () -> mensagemService.criarMensagem(1L, 2L, "Olá!"));
+                () -> mensagemService.criarMensagem(1L, 2L, "Olá!", null));
 
         assertEquals(HttpStatus.NOT_FOUND, erro.getStatusCode());
         verifyNoInteractions(conversaRepository, conversaService, mensagemRepository);
@@ -101,7 +101,7 @@ class MensagemServiceTests {
         when(usuarioRepository.existsById(2L)).thenReturn(false);
 
         ResponseStatusException erro = assertThrows(ResponseStatusException.class,
-                () -> mensagemService.criarMensagem(1L, 2L, "Olá!"));
+                () -> mensagemService.criarMensagem(1L, 2L, "Olá!", null));
 
         assertEquals(HttpStatus.NOT_FOUND, erro.getStatusCode());
         verifyNoInteractions(conversaRepository, conversaService, mensagemRepository);
@@ -110,7 +110,7 @@ class MensagemServiceTests {
     @Test
     void rejeitaConteudoEmBrancoSemAcessarOBanco() {
         ResponseStatusException erro = assertThrows(ResponseStatusException.class,
-                () -> mensagemService.criarMensagem(1L, 2L, "   "));
+                () -> mensagemService.criarMensagem(1L, 2L, "   ", null));
 
         assertEquals(HttpStatus.BAD_REQUEST, erro.getStatusCode());
         verifyNoInteractions(usuarioRepository, conversaRepository, conversaService, mensagemRepository);

@@ -56,8 +56,8 @@ public class MensagemController {
             @PathVariable Long idConversa,
             @PathVariable Long idEnviando,
             @PathVariable Long idRecebendo,
-            @PathVariable String mensagemVisualizada) {
-        List<Mensagem> mensagens = mensagemService.buscarMensagensOuCriarConversa(idConversa, idEnviando, idRecebendo, mensagemVisualizada);
+            Principal principal) {
+        List<Mensagem> mensagens = mensagemService.buscarMensagensOuCriarConversa(idConversa, idEnviando, idRecebendo, principal);
 
         List<MensagemDTO> mensagensRetorno = new ArrayList<>();
 

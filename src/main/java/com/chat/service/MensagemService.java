@@ -1,5 +1,6 @@
 package com.chat.service;
 
+import java.security.Principal;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class MensagemService {
     private SimpMessagingTemplate simpMessagingTemplate;
 
     @Transactional
-    public Mensagem criarMensagem(Long idEnviando, Long idRecebendo, String conteudo) {
+    public Mensagem criarMensagem(Long idEnviando, Long idRecebendo, String conteudo, String mensagemVisualizada) {
 
         if (conteudo == null || conteudo.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O conteúdo da mensagem é obrigatório.");
@@ -56,10 +57,11 @@ public class MensagemService {
         Conversa conversa = conversaRepository.findById(idConversa)
                 .orElseGet(() -> conversaService.criarConversa(idEnviando, idRecebendo));
 
-        Mensagem mensagem = new Mensagem(conversa, remetente, conteudo);
+        Mensagem mensagem = new Mensagem(conversa, remetente, conteudo, mensagemVisualizada);
         Mensagem mensagemSalva = mensagemRepository.save(mensagem);
 
-        simpMessagingTemplate.convertAndSend("/topic/conversa" + mensagemSalva.getIdConversa().getIdConversa(), mensagemSalva);
+        simpMessagingTemplate.convertAndSend("/topic/conversa" + mensagemSalva.getIdConversa().getIdConversa(),
+                mensagemSalva);
 
         return mensagemSalva;
 
@@ -114,21 +116,64 @@ public class MensagemService {
     }
 
     @Transactional
-    public List<Mensagem> buscarMensagensOuCriarConversa(Long idConversa, Long idEnviando, Long idRecebendo) {
+    public List<Mensagem> buscarMensagensOuCriarConversa(Long idConversa, Long idEnviando, Long idRecebendo,
+            Principal principal) {
+        validarIdsDaConversa(idConversa, idEnviando, idRecebendo);
+        Long idUsuarioAutenticado = obterIdUsuarioAutenticado(principal);
+        validarParticipanteInformado(idUsuarioAutenticado, idEnviando, idRecebendo);
+
         Conversa conversa = obterOuCriarConversa(idConversa, idEnviando, idRecebendo);
+        validarParticipantesDaConversa(conversa, idUsuarioAutenticado, idEnviando, idRecebendo);
+
         List<Mensagem> mensagens = mensagemRepository.buscarMensagensPorIdConversa(conversa.getIdConversa());
         if (!mensagens.isEmpty()) {
+            definirMensagensComoVisualizadas(mensagens, idUsuarioAutenticado);
             logger.debug("A conversa {} possui mensagens.", conversa.getIdConversa());
         }
         return mensagens;
     }
 
-    private Conversa obterOuCriarConversa(Long idConversa, Long idEnviando, Long idRecebendo) {
-        if (idConversa == null || idEnviando == null || idRecebendo == null
-                || idConversa <= 0 || idEnviando <= 0 || idRecebendo <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Os IDs devem ser positivos e obrigatórios.");
+    private Long obterIdUsuarioAutenticado(Principal principal) {
+        if (principal == null || principal.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado.");
         }
 
+        return usuarioRepository.findIdByEmail(principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Usuário autenticado não encontrado."));
+    }
+
+    private void validarParticipanteInformado(Long idUsuarioAutenticado, Long idEnviando, Long idRecebendo) {
+        if (!idUsuarioAutenticado.equals(idEnviando) && !idUsuarioAutenticado.equals(idRecebendo)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "O usuário autenticado não participa desta conversa.");
+        }
+    }
+
+    private void validarParticipantesDaConversa(
+            Conversa conversa,
+            Long idUsuarioAutenticado,
+            Long idEnviando,
+            Long idRecebendo) {
+        Long idRemetente = conversa.getIdRemetente();
+        Long idDestinatario = conversa.getIdDestinatario();
+
+        boolean participantesCorrespondem =
+                (idEnviando.equals(idRemetente) && idRecebendo.equals(idDestinatario))
+                        || (idEnviando.equals(idDestinatario) && idRecebendo.equals(idRemetente));
+        boolean usuarioParticipaDaConversa =
+                idUsuarioAutenticado.equals(idRemetente) || idUsuarioAutenticado.equals(idDestinatario);
+
+        if (!participantesCorrespondem || !usuarioParticipaDaConversa) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "O usuário autenticado não participa desta conversa.");
+        }
+    }
+
+    private Conversa obterOuCriarConversa(Long idConversa, Long idEnviando, Long idRecebendo) {
         Long idEsperado = conversaService.gerarIdConversa(idEnviando, idRecebendo);
         if (!idConversa.equals(idEsperado)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ID da conversa não corresponde aos usuários.");
@@ -136,5 +181,26 @@ public class MensagemService {
 
         return conversaRepository.findById(idConversa)
                 .orElseGet(() -> conversaService.criarConversa(idEnviando, idRecebendo));
+    }
+
+    private void validarIdsDaConversa(Long idConversa, Long idEnviando, Long idRecebendo) {
+        if (idConversa == null || idEnviando == null || idRecebendo == null
+                || idConversa <= 0 || idEnviando <= 0 || idRecebendo <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Os IDs devem ser positivos e obrigatórios.");
+        }
+    }
+
+    private void definirMensagensComoVisualizadas(
+            List<Mensagem> mensagens,
+            Long idUsuario) {
+        mensagens.stream()
+                .filter(mensagem -> !mensagem.getRemetente().getId().equals(idUsuario))
+                .filter(mensagem -> !"SIM".equals(mensagem.getMensagemVisualizada()))
+                .forEach(mensagem -> {
+                    mensagem.setMensagemVisualizada("SIM");
+                    logger.info(
+                            "Mensagem {} marcada como visualizada",
+                            mensagem.getId());
+                });
     }
 }
