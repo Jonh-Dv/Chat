@@ -81,15 +81,6 @@ public class MensagemService {
 
         if (!mensagemExcluidas.isEmpty()) {
             mensagemRepository.deleteAll(mensagemExcluidas);
-
-            // apenas para exibição dos dados que foram excluidos
-            for (Mensagem mensagens : mensagemExcluidas) {
-                System.out.println(mensagens.getConteudo());
-                System.out.println(mensagens.getId());
-                System.out.println(mensagens.getDataEnvio());
-                System.out.println(mensagens.getRemetente());
-            }
-
         }
 
     }

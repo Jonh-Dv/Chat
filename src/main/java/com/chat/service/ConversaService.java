@@ -39,8 +39,6 @@ public class ConversaService {
         Long idConversa = Long.parseLong(mediador);
         LocalDateTime dataCriacao = LocalDateTime.now();
 
-        System.out.println("ID da conversa: " + idConversa);
-
         if (conversaRepository.findById(idConversa).isPresent()) {
             throw new RuntimeException("Conversa já existe entre os usuários " + idUsuario1 + " e " + idUsuario2);
         } else {
@@ -69,7 +67,6 @@ public class ConversaService {
         String mediador = maior.toString() + menor.toString();
 
         Long idConversa = Long.parseLong(mediador);
-        System.out.println("ID da conversa: " + idConversa);
         return idConversa;
     }
 

@@ -31,8 +31,6 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(usuarioDTO.senha()));
         user.setRole(Role.USER);
 
-        System.out.println(
-                "Usuario salvo: " + user.getName() + ", Email: " + user.getEmail() + ", Role: " + user.getRole());
         usuarioRepository.save(user);
 
     }
