@@ -41,7 +41,7 @@ public class MensagemController {
             @PathVariable Long idEnviando,
             @PathVariable Long idRecebendo,
             @PathVariable String conteudo) {
-        Mensagem mensagem = mensagemService.criarMensagem(idEnviando, idRecebendo, conteudo, null);
+        Mensagem mensagem = mensagemService.criarMensagem(idEnviando, idRecebendo, conteudo, null, null);
         return new MensagemDTO(
                 mensagem.getId(),
                 mensagem.getIdConversa().getIdConversa(),
@@ -57,7 +57,8 @@ public class MensagemController {
             @PathVariable Long idEnviando,
             @PathVariable Long idRecebendo,
             Principal principal) {
-        List<Mensagem> mensagens = mensagemService.buscarMensagensOuCriarConversa(idConversa, idEnviando, idRecebendo, principal);
+        List<Mensagem> mensagens = mensagemService.buscarMensagensOuCriarConversa(idConversa, idEnviando, idRecebendo,
+                principal);
 
         List<MensagemDTO> mensagensRetorno = new ArrayList<>();
 
@@ -100,12 +101,16 @@ public class MensagemController {
 
     @DeleteMapping("/limpar-conversa/{idConversa}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void limparConversa(@PathVariable Long idConversa) {
+    public void limparConversa(@PathVariable Long idConversa, Principal principal) {
         if (idConversa == null || idConversa <= 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "O ID da conversa precisa ser válido.");
         }
-        mensagemService.deletarMensagens(idConversa);
+
+        Long idUsuarioLogado = usuarioRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado.")).getId();
+
+        mensagemService.deletarMensagens(idConversa, idUsuarioLogado);
         simpMessagingTemplate.convertAndSend("/topic/conversa" + idConversa, "CONVERSA_LIMPA");
     }
 

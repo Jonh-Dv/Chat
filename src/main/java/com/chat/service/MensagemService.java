@@ -40,7 +40,8 @@ public class MensagemService {
     private SimpMessagingTemplate simpMessagingTemplate;
 
     @Transactional
-    public Mensagem criarMensagem(Long idEnviando, Long idRecebendo, String conteudo, String mensagemVisualizada) {
+    public Mensagem criarMensagem(Long idEnviando, Long idRecebendo, String conteudo, String mensagemVisualizada,
+            String exclusao) {
 
         if (conteudo == null || conteudo.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O conteúdo da mensagem é obrigatório.");
@@ -57,7 +58,7 @@ public class MensagemService {
         Conversa conversa = conversaRepository.findById(idConversa)
                 .orElseGet(() -> conversaService.criarConversa(idEnviando, idRecebendo));
 
-        Mensagem mensagem = new Mensagem(conversa, remetente, conteudo, mensagemVisualizada);
+        Mensagem mensagem = new Mensagem(conversa, remetente, conteudo, mensagemVisualizada, null);
         Mensagem mensagemSalva = mensagemRepository.save(mensagem);
 
         simpMessagingTemplate.convertAndSend("/topic/conversa" + mensagemSalva.getIdConversa().getIdConversa(),
@@ -69,7 +70,7 @@ public class MensagemService {
 
     // Funcionalidade que apaga varias mensagens
     @Transactional
-    public void deletarMensagens(Long idConversa) {
+    public void deletarMensagens(Long idConversa, Long idUsuarioLogado) {
         if (idConversa == null || idConversa <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ID da conversa precisa ser válido.");
         }
@@ -80,9 +81,14 @@ public class MensagemService {
         List<Mensagem> mensagemExcluidas = mensagemRepository.buscarMensagensPorIdConversa(idConversa);
 
         if (!mensagemExcluidas.isEmpty()) {
-            mensagemRepository.deleteAll(mensagemExcluidas);
+            for (Mensagem mensagem : mensagemExcluidas) {
+                if (mensagem.getExclusao() == null) {
+                    mensagem.setExclusao("id_user -> " + idUsuarioLogado);
+                } else if (mensagem.getExclusao() != null) {
+                    mensagemRepository.delete(mensagem);
+                }
+            }
         }
-
     }
 
     // Funcionalidade que apaga uma unica mensagem
@@ -116,12 +122,19 @@ public class MensagemService {
         Conversa conversa = obterOuCriarConversa(idConversa, idEnviando, idRecebendo);
         validarParticipantesDaConversa(conversa, idUsuarioAutenticado, idEnviando, idRecebendo);
 
+        Long idUsuarioLogado = usuarioRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado."))
+                .getId();
+
         List<Mensagem> mensagens = mensagemRepository.buscarMensagensPorIdConversa(conversa.getIdConversa());
-        if (!mensagens.isEmpty()) {
-            definirMensagensComoVisualizadas(mensagens, idUsuarioAutenticado);
+        List<Mensagem> mensagensFiltradas = mensagens.stream()
+                .filter(mensagem -> !mensagem.getExclusao().contains("id_user -> " + idUsuarioLogado)).toList();
+
+        if (!mensagensFiltradas.isEmpty()) {
+            definirMensagensComoVisualizadas(mensagensFiltradas, idUsuarioAutenticado);
             logger.debug("A conversa {} possui mensagens.", conversa.getIdConversa());
         }
-        return mensagens;
+        return mensagensFiltradas;
     }
 
     private Long obterIdUsuarioAutenticado(Principal principal) {
@@ -151,11 +164,10 @@ public class MensagemService {
         Long idRemetente = conversa.getIdRemetente();
         Long idDestinatario = conversa.getIdDestinatario();
 
-        boolean participantesCorrespondem =
-                (idEnviando.equals(idRemetente) && idRecebendo.equals(idDestinatario))
-                        || (idEnviando.equals(idDestinatario) && idRecebendo.equals(idRemetente));
-        boolean usuarioParticipaDaConversa =
-                idUsuarioAutenticado.equals(idRemetente) || idUsuarioAutenticado.equals(idDestinatario);
+        boolean participantesCorrespondem = (idEnviando.equals(idRemetente) && idRecebendo.equals(idDestinatario))
+                || (idEnviando.equals(idDestinatario) && idRecebendo.equals(idRemetente));
+        boolean usuarioParticipaDaConversa = idUsuarioAutenticado.equals(idRemetente)
+                || idUsuarioAutenticado.equals(idDestinatario);
 
         if (!participantesCorrespondem || !usuarioParticipaDaConversa) {
             throw new ResponseStatusException(
@@ -193,5 +205,13 @@ public class MensagemService {
                             "Mensagem {} marcada como visualizada",
                             mensagem.getId());
                 });
+    }
+
+    public boolean isMensagemApagada(Mensagem mensagem) {
+        if (mensagem.getExclusao().contains("id_user")) {
+            return true;
+        }
+
+        return false;
     }
 }

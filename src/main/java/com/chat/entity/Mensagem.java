@@ -45,12 +45,16 @@ public class Mensagem {
     @Column(name = "VISUALIZACAO")
     private String mensagemVisualizada;
 
-    public Mensagem(Conversa conversa, Usuario remetente, String conteudo, String mensagemVisualizada) {
+    @Column(name = "EXCLUSAO")
+    private String exclusao;
+
+    public Mensagem(Conversa conversa, Usuario remetente, String conteudo, String mensagemVisualizada, String exclusao) {
         this.idConversa = conversa;
         this.remetente = remetente;
         this.conteudo = conteudo;
         this.dataEnvio = LocalDateTime.now();
         this.mensagemVisualizada = mensagemVisualizada;
+        this.exclusao = exclusao;
     }
 
 }
