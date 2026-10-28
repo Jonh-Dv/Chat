@@ -2,10 +2,10 @@ package com.chat.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -65,13 +65,13 @@ class MensagemConsultaServiceTests {
         prepararUsuarioAutenticado(1L);
         Usuario remetente = new Usuario();
         remetente.setId(1L);
-        List<Mensagem> mensagens = List.of(new Mensagem(null, null, remetente, "Olá", LocalDateTime.now(), null));
+        List<Mensagem> mensagens = List.of(new Mensagem(null, null, remetente, "Olá", LocalDateTime.now(), null, ""));
         when(conversaService.gerarIdConversa(1L, 2L)).thenReturn(21L);
         when(conversaRepository.findById(21L))
                 .thenReturn(Optional.of(criarConversa(21L, 1L, 2L)));
         when(mensagemRepository.buscarMensagensPorIdConversa(21L)).thenReturn(mensagens);
 
-        assertSame(mensagens, mensagemService.buscarMensagensOuCriarConversa(21L, 1L, 2L, principal));
+        assertEquals(mensagens, mensagemService.buscarMensagensOuCriarConversa(21L, 1L, 2L, principal));
 
         verify(conversaService, never()).criarConversa(any(), any());
     }
@@ -84,8 +84,8 @@ class MensagemConsultaServiceTests {
         usuarioAutenticado.setId(1L);
         Usuario outroUsuario = new Usuario();
         outroUsuario.setId(2L);
-        Mensagem mensagemEnviada = new Mensagem(10L, conversa, usuarioAutenticado, "Enviada", LocalDateTime.now(), null);
-        Mensagem mensagemRecebida = new Mensagem(11L, conversa, outroUsuario, "Recebida", LocalDateTime.now(), null);
+        Mensagem mensagemEnviada = new Mensagem(10L, conversa, usuarioAutenticado, "Enviada", LocalDateTime.now(), null, "");
+        Mensagem mensagemRecebida = new Mensagem(11L, conversa, outroUsuario, "Recebida", LocalDateTime.now(), null, "");
 
         when(conversaService.gerarIdConversa(1L, 2L)).thenReturn(21L);
         when(conversaRepository.findById(21L)).thenReturn(Optional.of(conversa));
@@ -175,6 +175,9 @@ class MensagemConsultaServiceTests {
 
     private void prepararUsuarioAutenticado(Long idUsuario) {
         when(usuarioRepository.findIdByEmail("usuario@chat.com")).thenReturn(Optional.of(idUsuario));
+        Usuario usuario = new Usuario();
+        usuario.setId(idUsuario);
+        lenient().when(usuarioRepository.findByEmail("usuario@chat.com")).thenReturn(Optional.of(usuario));
     }
 
     private Conversa criarConversa(Long idConversa, Long idUsuario1, Long idUsuario2) {

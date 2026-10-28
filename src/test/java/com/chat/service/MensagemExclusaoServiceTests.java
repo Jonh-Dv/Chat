@@ -42,7 +42,7 @@ class MensagemExclusaoServiceTests {
             ResponseStatusException erroMensagem = assertThrows(ResponseStatusException.class,
                     () -> mensagemService.deletarMensagem(id, 1L));
             ResponseStatusException erroConversa = assertThrows(ResponseStatusException.class,
-                    () -> mensagemService.deletarMensagens(id));
+                    () -> mensagemService.deletarMensagens(id, 1L));
             assertEquals(HttpStatus.BAD_REQUEST, erroMensagem.getStatusCode());
             assertEquals(HttpStatus.BAD_REQUEST, erroConversa.getStatusCode());
         }
@@ -96,7 +96,7 @@ class MensagemExclusaoServiceTests {
         when(conversaRepository.existsById(21L)).thenReturn(false);
 
         ResponseStatusException erro = assertThrows(ResponseStatusException.class,
-                () -> mensagemService.deletarMensagens(21L));
+                () -> mensagemService.deletarMensagens(21L, 1L));
 
         assertEquals(HttpStatus.NOT_FOUND, erro.getStatusCode());
         verifyNoInteractions(mensagemRepository);
@@ -107,20 +107,22 @@ class MensagemExclusaoServiceTests {
         when(conversaRepository.existsById(21L)).thenReturn(true);
         when(mensagemRepository.buscarMensagensPorIdConversa(21L)).thenReturn(List.of());
 
-        mensagemService.deletarMensagens(21L);
+        mensagemService.deletarMensagens(21L, 1L);
 
         verify(mensagemRepository, never()).deleteAll(any());
     }
 
     @Test
-    void limpaConversaExcluindoSomenteAsMensagensConsultadas() {
+    void limpaConversaMarcandoAsMensagensParaOUsuarioLogado() {
         List<Mensagem> mensagens = List.of(new Mensagem(), new Mensagem());
         when(conversaRepository.existsById(21L)).thenReturn(true);
         when(mensagemRepository.buscarMensagensPorIdConversa(21L)).thenReturn(mensagens);
 
-        mensagemService.deletarMensagens(21L);
+        mensagemService.deletarMensagens(21L, 1L);
 
-        verify(mensagemRepository).deleteAll(mensagens);
+        assertEquals("id_user -> 1", mensagens.get(0).getExclusao());
+        assertEquals("id_user -> 1", mensagens.get(1).getExclusao());
+        verify(mensagemRepository, never()).delete(any(Mensagem.class));
         verify(conversaRepository, never()).deleteById(any());
         verify(conversaRepository, never()).delete(any());
     }

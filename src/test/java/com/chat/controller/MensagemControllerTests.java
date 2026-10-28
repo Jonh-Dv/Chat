@@ -59,10 +59,12 @@ class MensagemControllerTests {
 
     @Test
     void notificaLimpezaNoTopicoDaConversa() throws Exception {
-        mockMvc.perform(delete("/mensagem/limpar-conversa/21"))
+        prepararUsuarioLogado();
+
+        mockMvc.perform(delete("/mensagem/limpar-conversa/21").principal(() -> "usuario@chat.com"))
                 .andExpect(status().isNoContent());
 
-        verify(mensagemService).deletarMensagens(21L);
+        verify(mensagemService).deletarMensagens(21L, 1L);
         verify(simpMessagingTemplate).convertAndSend("/topic/conversa21", "CONVERSA_LIMPA");
     }
 
@@ -80,10 +82,11 @@ class MensagemControllerTests {
 
     @Test
     void naoNotificaQuandoConversaNaoExiste() throws Exception {
+        prepararUsuarioLogado();
         doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversa não encontrada."))
-                .when(mensagemService).deletarMensagens(21L);
+                .when(mensagemService).deletarMensagens(21L, 1L);
 
-        mockMvc.perform(delete("/mensagem/limpar-conversa/21"))
+        mockMvc.perform(delete("/mensagem/limpar-conversa/21").principal(() -> "usuario@chat.com"))
                 .andExpect(status().isNotFound());
 
         verifyNoInteractions(simpMessagingTemplate);
